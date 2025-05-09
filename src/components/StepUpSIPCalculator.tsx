@@ -263,91 +263,93 @@ const StepUpSIPCalculator = () => {
               </div>
             </Card>
             
-            {/* Chart visualization */}
+            {/* Chart and table side-by-side visualization */}
             <div className="bg-[#302478] rounded-lg p-6">
               <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
                 <ChartBar className="text-[#9b87f5]" />
                 Investment Growth Comparison
               </h3>
-              <div className="h-[400px]">
-                <ChartContainer 
-                  config={{
-                    regular: { color: "#33C3F0", label: "Regular SIP" },
-                    stepup: { color: "#9b87f5", label: "Step-up SIP" },
-                  }}
-                >
-                  <BarChart
-                    data={yearlyData}
-                    margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+              
+              {/* Grid layout for side-by-side display */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Chart section */}
+                <div className="h-[400px]">
+                  <ChartContainer 
+                    config={{
+                      regular: { color: "#33C3F0", label: "Regular SIP" },
+                      stepup: { color: "#9b87f5", label: "Step-up SIP" },
+                    }}
                   >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis 
-                      dataKey="year" 
-                      tick={{ fill: '#fff' }}
-                      label={{ value: 'Years', position: 'insideBottom', offset: -5, fill: '#fff' }}
-                    />
-                    <YAxis 
-                      tick={{ fill: '#fff' }}
-                      tickFormatter={(value) => value >= 1000000 
-                        ? `₹${(value / 1000000).toFixed(1)}M` 
-                        : `₹${(value / 1000).toFixed(0)}K`
-                      }
-                    />
-                    <Tooltip 
-                      content={({ active, payload }) => {
-                        if (active && payload && payload.length) {
-                          return (
-                            <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-200">
-                              <p className="font-medium">Year {payload[0].payload.year}</p>
-                              <p className="text-[#33C3F0]">
-                                Regular SIP: {formatToInr(payload[0].payload.regularSIP)}
-                              </p>
-                              <p className="text-[#9b87f5]">
-                                Step-up SIP: {formatToInr(payload[0].payload.stepUpSIP)}
-                              </p>
-                              <p className="text-gray-600 text-sm mt-1">
-                                Difference: {formatToInr(payload[0].payload.stepUpSIP - payload[0].payload.regularSIP)}
-                              </p>
-                            </div>
-                          );
+                    <BarChart
+                      data={yearlyData}
+                      margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis 
+                        dataKey="year" 
+                        tick={{ fill: '#fff' }}
+                        label={{ value: 'Years', position: 'insideBottom', offset: -5, fill: '#fff' }}
+                      />
+                      <YAxis 
+                        tick={{ fill: '#fff' }}
+                        tickFormatter={(value) => value >= 1000000 
+                          ? `₹${(value / 1000000).toFixed(1)}M` 
+                          : `₹${(value / 1000).toFixed(0)}K`
                         }
-                        return null;
-                      }}
-                    />
-                    <Legend />
-                    <Bar dataKey="regularSIP" fill="#33C3F0" name="Regular SIP" />
-                    <Bar dataKey="stepUpSIP" fill="#9b87f5" name="Step-up SIP" />
-                  </BarChart>
-                </ChartContainer>
-              </div>
-            </div>
-            
-            {/* Yearly breakdown table */}
-            <div className="bg-[#302478] rounded-lg p-6">
-              <h3 className="text-xl font-semibold mb-4">Year-by-Year Breakdown</h3>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="border-b border-gray-700">
-                      <TableHead className="text-white">Year</TableHead>
-                      <TableHead className="text-white">Regular SIP Value</TableHead>
-                      <TableHead className="text-white">Step-up SIP Value</TableHead>
-                      <TableHead className="text-white">Additional Returns</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {yearlyData.map((data, index) => (
-                      <TableRow key={index} className="border-b border-gray-700">
-                        <TableCell className="text-white">{data.year}</TableCell>
-                        <TableCell className="text-white">{formatToInr(data.regularSIP)}</TableCell>
-                        <TableCell className="text-white">{formatToInr(data.stepUpSIP)}</TableCell>
-                        <TableCell className="text-[#9b87f5] font-medium">
-                          {formatToInr(data.stepUpSIP - data.regularSIP)}
-                        </TableCell>
+                      />
+                      <Tooltip 
+                        content={({ active, payload }) => {
+                          if (active && payload && payload.length) {
+                            return (
+                              <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-200">
+                                <p className="font-medium">Year {payload[0].payload.year}</p>
+                                <p className="text-[#33C3F0]">
+                                  Regular SIP: {formatToInr(payload[0].payload.regularSIP)}
+                                </p>
+                                <p className="text-[#9b87f5]">
+                                  Step-up SIP: {formatToInr(payload[0].payload.stepUpSIP)}
+                                </p>
+                                <p className="text-gray-600 text-sm mt-1">
+                                  Difference: {formatToInr(payload[0].payload.stepUpSIP - payload[0].payload.regularSIP)}
+                                </p>
+                              </div>
+                            );
+                          }
+                          return null;
+                        }}
+                      />
+                      <Legend />
+                      <Bar dataKey="regularSIP" fill="#33C3F0" name="Regular SIP" />
+                      <Bar dataKey="stepUpSIP" fill="#9b87f5" name="Step-up SIP" />
+                    </BarChart>
+                  </ChartContainer>
+                </div>
+                
+                {/* Table section */}
+                <div className="overflow-y-auto max-h-[400px] pr-2">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="border-b border-gray-700">
+                        <TableHead className="text-white">Year</TableHead>
+                        <TableHead className="text-white">Regular SIP</TableHead>
+                        <TableHead className="text-white">Step-up SIP</TableHead>
+                        <TableHead className="text-white">Extra Returns</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {yearlyData.map((data, index) => (
+                        <TableRow key={index} className="border-b border-gray-700">
+                          <TableCell className="text-white">{data.year}</TableCell>
+                          <TableCell className="text-white">{formatToInr(data.regularSIP)}</TableCell>
+                          <TableCell className="text-white">{formatToInr(data.stepUpSIP)}</TableCell>
+                          <TableCell className="text-[#9b87f5] font-medium">
+                            {formatToInr(data.stepUpSIP - data.regularSIP)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               </div>
             </div>
           </div>
