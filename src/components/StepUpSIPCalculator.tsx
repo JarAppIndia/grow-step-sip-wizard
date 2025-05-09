@@ -1,9 +1,33 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, ChartBar } from "lucide-react";
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from "@/components/ui/table";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  ChartLegend,
+  ChartLegendContent,
+} from "@/components/ui/chart";
+import {
+  Bar,
+  BarChart,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from "recharts";
 
 const StepUpSIPCalculator = () => {
   const [monthlyInvestment, setMonthlyInvestment] = useState(5000);
@@ -18,6 +42,7 @@ const StepUpSIPCalculator = () => {
     wealthGainedWithStepUp: 0,
   });
   const [showResults, setShowResults] = useState(false);
+  const [yearlyData, setYearlyData] = useState<any[]>([]);
 
   // Calculate results
   const calculateResults = () => {
@@ -49,6 +74,10 @@ const StepUpSIPCalculator = () => {
       wealthGainedWithStepUp: Math.round(stepUpMaturityAmount - stepUpTotalInvestment),
     });
 
+    // Calculate yearly data for chart and table
+    const yearData = calculateYearlyData();
+    setYearlyData(yearData);
+    
     setShowResults(true);
   };
 
@@ -83,6 +112,41 @@ const StepUpSIPCalculator = () => {
     }
     
     return maturityAmount;
+  };
+
+  // Calculate yearly data for chart and table
+  const calculateYearlyData = () => {
+    const data = [];
+    let regularMonthlyInvestment = monthlyInvestment;
+    let stepUpMonthlyInvestment = monthlyInvestment;
+    let regularAmount = 0;
+    let stepUpAmount = 0;
+    
+    for (let year = 1; year <= investmentDuration; year++) {
+      // Calculate for regular SIP
+      for (let month = 0; month < 12; month++) {
+        regularAmount = (regularAmount + regularMonthlyInvestment) * (1 + expectedReturnRate / 12 / 100);
+      }
+      
+      // Calculate for step-up SIP
+      for (let month = 0; month < 12; month++) {
+        stepUpAmount = (stepUpAmount + stepUpMonthlyInvestment) * (1 + expectedReturnRate / 12 / 100);
+      }
+      
+      // Increase step-up SIP amount for next year
+      stepUpMonthlyInvestment += (stepUpMonthlyInvestment * stepUpPercentage) / 100;
+      
+      // Add data for this year
+      data.push({
+        year: year,
+        regularSIP: Math.round(regularAmount),
+        stepUpSIP: Math.round(stepUpAmount),
+        invested: Math.round(regularMonthlyInvestment * 12 * year),
+        stepUpInvested: Math.round((year === 1 ? monthlyInvestment * 12 : data[year - 2].stepUpInvested + stepUpMonthlyInvestment * 12))
+      });
+    }
+    
+    return data;
   };
 
   // Format number to Indian rupee format
@@ -199,23 +263,91 @@ const StepUpSIPCalculator = () => {
               </div>
             </Card>
             
+            {/* Chart visualization */}
             <div className="bg-[#302478] rounded-lg p-6">
-              <h3 className="text-xl font-semibold mb-4">Future Value Comparison</h3>
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span>With Step-up SIP</span>
-                  <span className="font-bold">{formatToInr(calculationResult.totalReturnWithStepUp)}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span>Without Step-up</span>
-                  <span className="font-bold">{formatToInr(calculationResult.totalReturnWithoutStepUp)}</span>
-                </div>
-                <div className="flex justify-between items-center pt-2 border-t border-gray-700">
-                  <span className="font-medium">Additional Returns</span>
-                  <span className="font-bold text-[#9b87f5]">
-                    {formatToInr(calculationResult.totalReturnWithStepUp - calculationResult.totalReturnWithoutStepUp)}
-                  </span>
-                </div>
+              <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                <ChartBar className="text-[#9b87f5]" />
+                Investment Growth Comparison
+              </h3>
+              <div className="h-[400px]">
+                <ChartContainer 
+                  config={{
+                    regular: { color: "#33C3F0", label: "Regular SIP" },
+                    stepup: { color: "#9b87f5", label: "Step-up SIP" },
+                  }}
+                >
+                  <BarChart
+                    data={yearlyData}
+                    margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis 
+                      dataKey="year" 
+                      tick={{ fill: '#fff' }}
+                      label={{ value: 'Years', position: 'insideBottom', offset: -5, fill: '#fff' }}
+                    />
+                    <YAxis 
+                      tick={{ fill: '#fff' }}
+                      tickFormatter={(value) => value >= 1000000 
+                        ? `₹${(value / 1000000).toFixed(1)}M` 
+                        : `₹${(value / 1000).toFixed(0)}K`
+                      }
+                    />
+                    <Tooltip 
+                      content={({ active, payload }) => {
+                        if (active && payload && payload.length) {
+                          return (
+                            <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-200">
+                              <p className="font-medium">Year {payload[0].payload.year}</p>
+                              <p className="text-[#33C3F0]">
+                                Regular SIP: {formatToInr(payload[0].payload.regularSIP)}
+                              </p>
+                              <p className="text-[#9b87f5]">
+                                Step-up SIP: {formatToInr(payload[0].payload.stepUpSIP)}
+                              </p>
+                              <p className="text-gray-600 text-sm mt-1">
+                                Difference: {formatToInr(payload[0].payload.stepUpSIP - payload[0].payload.regularSIP)}
+                              </p>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
+                    <Legend />
+                    <Bar dataKey="regularSIP" fill="#33C3F0" name="Regular SIP" />
+                    <Bar dataKey="stepUpSIP" fill="#9b87f5" name="Step-up SIP" />
+                  </BarChart>
+                </ChartContainer>
+              </div>
+            </div>
+            
+            {/* Yearly breakdown table */}
+            <div className="bg-[#302478] rounded-lg p-6">
+              <h3 className="text-xl font-semibold mb-4">Year-by-Year Breakdown</h3>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-b border-gray-700">
+                      <TableHead className="text-white">Year</TableHead>
+                      <TableHead className="text-white">Regular SIP Value</TableHead>
+                      <TableHead className="text-white">Step-up SIP Value</TableHead>
+                      <TableHead className="text-white">Additional Returns</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {yearlyData.map((data, index) => (
+                      <TableRow key={index} className="border-b border-gray-700">
+                        <TableCell className="text-white">{data.year}</TableCell>
+                        <TableCell className="text-white">{formatToInr(data.regularSIP)}</TableCell>
+                        <TableCell className="text-white">{formatToInr(data.stepUpSIP)}</TableCell>
+                        <TableCell className="text-[#9b87f5] font-medium">
+                          {formatToInr(data.stepUpSIP - data.regularSIP)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </div>
             </div>
           </div>
